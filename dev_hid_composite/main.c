@@ -28,13 +28,6 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-enum
-{
-    BLINK_NOT_MOUNTED = 250,
-    BLINK_MOUNTED = 1000,
-    BLINK_SUSPENDED = 2500,
-};
-
 void hid_task(void);
 
 bool lastCallbackWasEmpty = false;
@@ -166,7 +159,7 @@ void tud_hid_set_report_cb(
 void tud_mount_cb(void) {}
 
 // Callback: device unmounted successfully
-void tud_umount_cb(void) { debug_led_set_interval(BLINK_NOT_MOUNTED); }
+void tud_umount_cb(void) {}
 
 // Callback: connection suspended
 void tud_suspend_cb(bool remote_wakeup_en)
