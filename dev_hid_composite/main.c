@@ -52,10 +52,6 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-void hid_task(void);
-
-bool lastCallbackWasEmpty = false;
-
 const u32 key_send_cooldown = 4;
 const u32 frame_delay = 1;
 
@@ -148,15 +144,7 @@ void handle_events()
 //-------------------------------------------------------------------------------------------------+
 
 // Callback: report sent successfully
-void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len)
-{
-    // if (!lastCallbackWasEmpty)
-    // {
-    //     // send empty key report if previously has key pressed
-    //     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-    //     lastCallbackWasEmpty = true;
-    // }
-}
+void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len) {}
 
 // Callback: received get_report control request
 uint16_t tud_hid_get_report_cb(
