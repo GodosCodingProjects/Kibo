@@ -36,33 +36,71 @@
 #define GP_COUNT 20U
 #define KEYS_PER_COMBO 6U
 
-static const u8 key_map[GP_COUNT][KEYS_PER_COMBO] = {
-    // Row 1 (top)
-    {HID_KEY_CONTROL_LEFT, HID_KEY_C},
-    {HID_KEY_Q},
-    {HID_KEY_W},
-    {HID_KEY_F},
-    {HID_KEY_P},
-    {HID_KEY_B},
-    // Row 2 (middle)
-    {HID_KEY_CONTROL_LEFT, HID_KEY_V},
-    {HID_KEY_A},
-    {HID_KEY_R},
-    {HID_KEY_S},
-    {HID_KEY_T},
-    {HID_KEY_G},
-    // Row 3 (bottom)
-    {HID_KEY_Z},
-    {HID_KEY_X},
-    {HID_KEY_C},
-    {HID_KEY_D},
-    {HID_KEY_V},
-    // Row 4 (thumb)
-    {HID_KEY_BACKSPACE},
-    {HID_KEY_SPACE},
-    {HID_KEY_ENTER},
+#define LAYER_COUNT 2U
+
+#define HID_KEY_LAYER_TOGGLE 0xA5
+
+static u32 cur_layer = 0;
+
+static const u8 key_map[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
+    // Layer 0
+    {
+        // Row 1 (top)
+        {HID_KEY_LAYER_TOGGLE},
+        {HID_KEY_Q},
+        {HID_KEY_W},
+        {HID_KEY_F},
+        {HID_KEY_P},
+        {HID_KEY_B},
+        // Row 2 (middle)
+        {HID_KEY_LAYER_TOGGLE},
+        {HID_KEY_A},
+        {HID_KEY_R},
+        {HID_KEY_S},
+        {HID_KEY_T},
+        {HID_KEY_G},
+        // Row 3 (bottom)
+        {HID_KEY_Z},
+        {HID_KEY_X},
+        {HID_KEY_C},
+        {HID_KEY_D},
+        {HID_KEY_V},
+        // Row 4 (thumb)
+        {HID_KEY_BACKSPACE},
+        {HID_KEY_SPACE},
+        {HID_KEY_ENTER},
+    },
+    // Layer 1
+    {
+        // Row 1 (top)
+        {HID_KEY_LAYER_TOGGLE},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_Q},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_W},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_F},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_P},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_B},
+        // Row 2 (middle)
+        {HID_KEY_LAYER_TOGGLE},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_A},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_R},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_S},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_T},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_G},
+        // Row 3 (bottom)
+        {HID_KEY_SHIFT_LEFT, HID_KEY_Z},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_X},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_C},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_D},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_V},
+        // Row 4 (thumb)
+        {HID_KEY_BACKSPACE},
+        {HID_KEY_SPACE},
+        {HID_KEY_ENTER},
+    }
 };
 
-const u8* get_keycodes(u32 gpio) { return key_map[gpio - GP0]; }
+const u8* get_keycodes(u32 gpio) { return key_map[cur_layer][gpio - GP0]; }
+
+void change_layer() { cur_layer = 1 - cur_layer; }  // Toggle for now
 
 #endif  // KEY_MAP_H
