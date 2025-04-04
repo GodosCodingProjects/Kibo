@@ -104,10 +104,7 @@ void init()
 
 void send_hid_report(u32 gpio)
 {
-    u8 keycodes[6] = {0};
-    get_keycodes(gpio, keycodes);
-
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycodes);
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes(gpio));
     sleep_ms(key_send_cooldown);
     tud_task();
 
