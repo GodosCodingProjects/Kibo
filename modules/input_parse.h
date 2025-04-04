@@ -26,23 +26,24 @@
 #ifndef INPUT_PARSE_H
 #define INPUT_PARSE_H
 
+#include "delta_time.h"
 #include "key_map.h"
 #include "types.h"
 
 #include <stdbool.h>
 
 static u32 key_inputs[GP_COUNT] = {0};
-static const u32 frames_released = 0;
-static const u32 frames_up = 10;
-static const u32 frames_down = 20;
-static const u32 frames_pressed = 30;
+static const u32 ms_to_released = 0;
+static const u32 ms_to_up = 10;
+static const u32 ms_to_down = 20;
+static const u32 ms_to_pressed = 30;
 
 enum key_events
 {
-    event_RELEASED,  // Released held
+    event_RELEASED,  // Release held
     event_UP,        // Release detected
     event_DOWN,      // Press detected
-    event_PRESSED,   // Pressed held
+    event_PRESSED,   // Press held
     event_MAX,
 };
 struct event
@@ -55,23 +56,23 @@ static struct event last_key_events[GP_COUNT];
 static void update_event(u32 i)
 {
     if (last_key_events[i].event != event_DOWN && last_key_events[i].event != event_PRESSED &&
-        key_inputs[i] == frames_down)
+        key_inputs[i] == ms_to_down)
     {
         last_key_events[i].event = event_DOWN;
         last_key_events[i].was_consumed = false;
     }
-    else if (last_key_events[i].event == event_DOWN && key_inputs[i] == frames_pressed)
+    else if (last_key_events[i].event == event_DOWN && key_inputs[i] == ms_to_pressed)
     {
         last_key_events[i].event = event_PRESSED;
         last_key_events[i].was_consumed = false;
     }
     else if (last_key_events[i].event != event_UP && last_key_events[i].event != event_RELEASED &&
-             key_inputs[i] == frames_up)
+             key_inputs[i] == ms_to_up)
     {
         last_key_events[i].event = event_UP;
         last_key_events[i].was_consumed = false;
     }
-    else if (last_key_events[i].event == event_UP && key_inputs[i] == frames_released)
+    else if (last_key_events[i].event == event_UP && key_inputs[i] == ms_to_released)
     {
         last_key_events[i].event = event_RELEASED;
         last_key_events[i].was_consumed = false;
@@ -82,16 +83,16 @@ void update_input(u32 i, bool is_pressed)
 {
     if (is_pressed)
     {
-        if (key_inputs[i] < frames_pressed)
+        if (key_inputs[i] < ms_to_pressed)
         {
-            ++key_inputs[i];
+            key_inputs[i] += delta_time();
         }
     }
     else
     {
-        if (key_inputs[i] > frames_released)
+        if (key_inputs[i] > ms_to_released)
         {
-            --key_inputs[i];
+            key_inputs[i] -= delta_time();
         }
     }
 
