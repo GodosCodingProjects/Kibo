@@ -105,6 +105,12 @@ void init()
 
 void send_hid_report(u32 gpio)
 {
+    if (*get_keycodes(gpio) == HID_KEY_LAYER_TOGGLE)
+    {
+        change_layer();
+        return;
+    }
+
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes(gpio));
     sleep_ms(key_send_cooldown);
     tud_task();
