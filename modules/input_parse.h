@@ -86,13 +86,25 @@ void update_input(u32 i, bool is_pressed)
         if (key_inputs[i] < ms_to_pressed)
         {
             key_inputs[i] += delta_time();
+
+            if (key_inputs[i] > ms_to_pressed)
+            {
+                key_inputs[i] = ms_to_pressed;
+            }
         }
     }
     else
     {
         if (key_inputs[i] > ms_to_released)
         {
-            key_inputs[i] -= delta_time();
+            if (delta_time() > key_inputs[i])
+            {
+                key_inputs[i] = 0;
+            }
+            else
+            {
+                key_inputs[i] -= delta_time();
+            }
         }
     }
 
