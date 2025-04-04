@@ -23,50 +23,27 @@
  *
  */
 
-#ifndef DEBUG_LED_H
-#define DEBUG_LED_H
+#ifndef DELTA_TIME_H
+#define DELTA_TIME_H
 
-#include "pico/stdlib.h"
-#include "pin_helper.h"
-#include "timer.h"
+#include "bsp/board.h"
 #include "types.h"
 
 #include <stdbool.h>
 
-static const u32 DEBUG_LED_GPIO = 25;
+static u32 last_frame_time = 0;
+static u32 deltatime = 0;
 
-void debug_led_on() { gpio_put(DEBUG_LED_GPIO, true); }
+u32 delta_time() { return deltatime; }
 
-void debug_led_off() { gpio_put(DEBUG_LED_GPIO, false); }
-
-void debug_led_toggle()
+void delta_time_update()
 {
-    // toggle
-    gpio_put(DEBUG_LED_GPIO, 1 - gp_get(DEBUG_LED_GPIO));
-}
-
-static struct cooldown_timer debug_led_cdt;
-
-void debug_led_set_interval(u32 interval) { debug_led_cdt.cooldown = interval; }
-
-void debug_led_init()
-{
-    gp_out(DEBUG_LED_GPIO);
-    gpio_put(DEBUG_LED_GPIO, true);
-    debug_led_set_interval(0);
-}
-
-void debug_led_update()
-{
-    static bool led_state = true;
-
-    // blink is disabled
-    if (!cooldown_timer_update(&debug_led_cdt))
+    const u32 cur_frame_time = board_millis();
+    if (last_frame_time != cur_frame_time)
     {
-        return;
+        deltatime = cur_frame_time - last_frame_time;
+        last_frame_time = board_millis();
     }
-
-    debug_led_toggle();
 }
 
-#endif  // DEBUG_LED_H
+#endif  // DELTA_TIME_H

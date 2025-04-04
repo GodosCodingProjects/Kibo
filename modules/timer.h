@@ -39,7 +39,7 @@ struct cooldown_timer
 
 static u32 last_update = 0;
 
-bool update_cooldown_timer(struct cooldown_timer* cdt)
+bool cooldown_timer_update(struct cooldown_timer* cdt)
 {
     if (cdt->cooldown == 0)
     {

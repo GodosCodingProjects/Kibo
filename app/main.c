@@ -36,6 +36,7 @@
 
 #include "bsp/board_api.h"
 #include "debug_led.h"
+#include "delta_time.h"
 #include "input_parse.h"
 #include "key_map.h"
 #include "pin_helper.h"
@@ -78,9 +79,9 @@ int main(void)
     while (1)
     {
         tud_task();
+        delta_time_update();
 
         parse_inputs();
-
         handle_events();
 
         sleep_ms(frame_delay);
