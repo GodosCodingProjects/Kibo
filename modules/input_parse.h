@@ -70,8 +70,6 @@ static void update_event(u32 i)
     {
         last_key_events[i].event = event_UP;
         last_key_events[i].was_consumed = false;
-
-        gp_off(25);
     }
     else if (last_key_events[i].event == event_UP && key_inputs[i] == frames_released)
     {

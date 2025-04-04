@@ -73,11 +73,10 @@ void handle_events();
 int main(void)
 {
     init();
-    gp_off(25);
+    debug_led_off();
 
     while (1)
     {
-        // debug_led_update();
         tud_task();
 
         parse_inputs();
@@ -108,9 +107,6 @@ void send_hid_report(u32 gpio)
     u8 keycodes[6] = {0};
     get_keycodes(gpio, keycodes);
 
-    // Debug
-    gp_on(25);
-
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycodes);
     sleep_ms(key_send_cooldown);
     tud_task();
@@ -134,7 +130,12 @@ void handle_events()
     {
         if (input_down(i))
         {
+            debug_led_on();
             send_hid_report(i + GP0);
+        }
+        else if (input_up(i))
+        {
+            debug_led_off();
         }
     }
 }
