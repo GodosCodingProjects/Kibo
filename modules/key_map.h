@@ -42,7 +42,7 @@
 
 static u32 cur_layer = 0;
 
-static const u8 key_map[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
+static const u8 key_map_left[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
     // Layer 0
     {
         // Row 1 (top)
@@ -99,7 +99,65 @@ static const u8 key_map[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
     }
 };
 
-const u8* get_keycodes(u32 gpio) { return key_map[cur_layer][gpio - GP0]; }
+static const u8 key_map_right[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
+    // Layer 0
+    {
+        // Row 1 (top)
+        {HID_KEY_J},
+        {HID_KEY_L},
+        {HID_KEY_U},
+        {HID_KEY_Y},
+        {HID_KEY_SEMICOLON},
+        {HID_KEY_LAYER_TOGGLE},
+        // Row 2 (middle)
+        {HID_KEY_M},
+        {HID_KEY_N},
+        {HID_KEY_E},
+        {HID_KEY_I},
+        {HID_KEY_O},
+        {HID_KEY_LAYER_TOGGLE},
+        // Row 3 (bottom)
+        {HID_KEY_K},
+        {HID_KEY_H},
+        {HID_KEY_COMMA},
+        {HID_KEY_PERIOD},
+        {HID_KEY_SLASH},
+        // Row 4 (thumb)
+        {HID_KEY_BACKSPACE},
+        {HID_KEY_SPACE},
+        {HID_KEY_ENTER},
+    },
+    // Layer 1
+    {
+        // Row 1 (top)
+        {HID_KEY_SHIFT_LEFT, HID_KEY_J},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_L},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_U},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_Y},
+        {HID_KEY_SEMICOLON},
+        {HID_KEY_LAYER_TOGGLE},
+        // Row 2 (middle)
+        {HID_KEY_SHIFT_LEFT, HID_KEY_M},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_N},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_E},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_I},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_O},
+        {HID_KEY_LAYER_TOGGLE},
+        // Row 3 (bottom)
+        {HID_KEY_SHIFT_LEFT, HID_KEY_K},
+        {HID_KEY_SHIFT_LEFT, HID_KEY_H},
+        {HID_KEY_COMMA},
+        {HID_KEY_PERIOD},
+        {HID_KEY_SLASH},
+        // Row 4 (thumb)
+        {HID_KEY_BACKSPACE},
+        {HID_KEY_SPACE},
+        {HID_KEY_ENTER},
+    }
+};
+
+const u8* get_keycodes_left(u32 gpio) { return key_map_left[cur_layer][gpio - GP0]; }
+const u8* get_keycodes_right(u32 gpio) { return key_map_right[cur_layer][gpio - GP0]; }
 
 void change_layer() { cur_layer = 1 - cur_layer; }  // Toggle for now
 

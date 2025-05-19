@@ -37,8 +37,10 @@
 #include "bsp/board_api.h"
 #include "debug_led.h"
 #include "delta_time.h"
+#include "hardware/uart.h"
 #include "input_parse.h"
 #include "key_map.h"
+#include "pico/stdlib.h"
 #include "pin_helper.h"
 #include "tusb.h"
 #include "types.h"
@@ -53,13 +55,24 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
+#define KIBO_MASTER
+#ifndef KIBO_MASTER
+#define KIBO_PUPPET
+#endif
+
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
+
 const u32 key_send_cooldown = 4;
 const u32 frame_delay = 1;
 
 void init();
-void send_hid_report(u32 gpio);
+void send_hid_report_left(u32 gpio);
+void send_hid_report_right(u32 gpio);
+void send_uart(u32 gpio);
 void parse_inputs();
 void handle_events();
+void handle_uart();
 
 //-------------------------------------------------------------------------------------------------+
 // Main
@@ -84,6 +97,10 @@ int main(void)
         parse_inputs();
         handle_events();
 
+#ifdef KIBO_MASTER
+        handle_uart();
+#endif
+
         sleep_ms(frame_delay);
     }
 }
@@ -94,6 +111,7 @@ void init()
     debug_led_init();
     gps_in(GP0, GP_COUNT);
 
+#ifdef KIBO_MASTER
     // init device stack on configured roothub port
     tud_init(BOARD_TUD_RHPORT);
 
@@ -101,23 +119,55 @@ void init()
     {
         board_init_after_tusb();
     }
+#endif
+
+    // Set up our UART with the required speed.
+    uart_init(uart0, 115200);
+
+    // Set the TX and RX pins by using the function select on the GPIO
+    // Set datasheet for more information on function select
+    gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(uart0, UART_TX_PIN));
+    gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(uart0, UART_RX_PIN));
 }
 
-void send_hid_report(u32 gpio)
+void send_hid_report_left(u32 gpio)
 {
-    if (*get_keycodes(gpio) == HID_KEY_LAYER_TOGGLE)
+    if (*get_keycodes_left(gpio) == HID_KEY_LAYER_TOGGLE)
     {
         change_layer();
         return;
     }
 
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes(gpio));
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_left(gpio));
     sleep_ms(key_send_cooldown);
     tud_task();
 
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
     sleep_ms(key_send_cooldown);
     tud_task();
+}
+
+void send_hid_report_right(u32 gpio)
+{
+    if (*get_keycodes_right(gpio) == HID_KEY_LAYER_TOGGLE)
+    {
+        change_layer();
+        return;
+    }
+
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_right(gpio));
+    sleep_ms(key_send_cooldown);
+    tud_task();
+
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
+    sleep_ms(key_send_cooldown);
+    tud_task();
+}
+
+void send_uart(u32 gpio)
+{
+    u8 output = (u8)gpio;
+    uart_write_blocking(uart0, &output, 1);
 }
 
 void parse_inputs()
@@ -135,12 +185,28 @@ void handle_events()
         if (input_down(i))
         {
             debug_led_on();
-            send_hid_report(i + GP0);
+
+#ifdef KIBO_MASTER
+            send_hid_report_left(i + GP0);
+#else
+            send_uart(i);
+#endif
         }
         else if (input_up(i))
         {
             debug_led_off();
         }
+    }
+}
+
+void handle_uart()
+{
+    if (uart_is_readable(uart0))
+    {
+        u8 input;
+        uart_read_blocking(uart0, &input, 1);
+
+        send_hid_report_right(input + GP0);
     }
 }
 
