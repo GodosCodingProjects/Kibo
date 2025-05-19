@@ -55,7 +55,7 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-#define KIBO_LEFT
+// #define KIBO_LEFT
 #ifndef KIBO_LEFT
 #define KIBO_RIGHT
 #endif
@@ -122,15 +122,20 @@ void init()
 #endif
     }
 
+    // init device stack on configured roothub port
+    is_master = tud_init(BOARD_TUD_RHPORT);
     if (is_master)
     {
-        // init device stack on configured roothub port
-        tud_init(BOARD_TUD_RHPORT);
+        debug_led_on();
+    }
+    else
+    {
+        debug_led_off();
+    }
 
-        if (board_init_after_tusb)
-        {
-            board_init_after_tusb();
-        }
+    if (board_init_after_tusb)
+    {
+        board_init_after_tusb();
     }
 
     // Set up our UART with the required speed.
