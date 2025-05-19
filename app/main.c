@@ -55,9 +55,9 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-#define KIBO_MASTER
-#ifndef KIBO_MASTER
-#define KIBO_PUPPET
+#define KIBO_LEFT
+#ifndef KIBO_LEFT
+#define KIBO_RIGHT
 #endif
 
 #define UART_TX_PIN 0
@@ -65,6 +65,8 @@
 
 const u32 key_send_cooldown = 4;
 const u32 frame_delay = 1;
+
+bool is_master = true;
 
 void init();
 void send_hid_report_left(u32 gpio);
@@ -97,9 +99,10 @@ int main(void)
         parse_inputs();
         handle_events();
 
-#ifdef KIBO_MASTER
-        handle_uart();
-#endif
+        if (is_master)
+        {
+            handle_uart();
+        }
 
         sleep_ms(frame_delay);
     }
@@ -110,25 +113,25 @@ void init()
     board_init();
     debug_led_init();
 
-#ifdef KIBO_MASTER
     for (u32 i = 0; i < GP_COUNT; ++i)
     {
+#ifdef KIBO_LEFT
         gp_on(get_gp_left(i));
-    }
-
-    // init device stack on configured roothub port
-    tud_init(BOARD_TUD_RHPORT);
-
-    if (board_init_after_tusb)
-    {
-        board_init_after_tusb();
-    }
 #else
-    for (u32 i = 0; i < GP_COUNT; ++i)
-    {
         gp_on(get_gp_right(i));
-    }
 #endif
+    }
+
+    if (is_master)
+    {
+        // init device stack on configured roothub port
+        tud_init(BOARD_TUD_RHPORT);
+
+        if (board_init_after_tusb)
+        {
+            board_init_after_tusb();
+        }
+    }
 
     // Set up our UART with the required speed.
     uart_init(uart0, 115200);
@@ -183,7 +186,7 @@ void parse_inputs()
 {
     for (u32 i = 0; i < GP_COUNT; ++i)
     {
-#ifdef KIBO_MASTER
+#ifdef KIBO_LEFT
         update_input(i, gp_get(get_gp_left(i)));
 #else
         update_input(i, gp_get(get_gp_right(i)));
@@ -199,11 +202,18 @@ void handle_events()
         {
             debug_led_on();
 
-#ifdef KIBO_MASTER
-            send_hid_report_left(i);
+            if (is_master)
+            {
+#ifdef KIBO_LEFT
+                send_hid_report_left(i);
 #else
-            send_uart(i);
+                send_hid_report_right(i);
 #endif
+            }
+            else
+            {
+                send_uart(i);
+            }
         }
         else if (input_up(i))
         {
@@ -219,7 +229,11 @@ void handle_uart()
         u8 i;
         uart_read_blocking(uart0, &i, 1);
 
+#ifdef KIBO_LEFT
         send_hid_report_right(i);
+#else
+        send_hid_report_left(i);
+#endif
     }
 }
 
