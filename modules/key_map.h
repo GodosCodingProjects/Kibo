@@ -34,13 +34,24 @@
 
 #define GP0 2U
 #define GP_COUNT 20U
+
 #define KEYS_PER_COMBO 6U
-
 #define LAYER_COUNT 2U
-
 #define HID_KEY_LAYER_TOGGLE 0xA5
 
-static u32 cur_layer = 0;
+static const u32 gp_map_left[GP_COUNT] = {
+    2,  3,  4,  5,  6,  7,   // row 1
+    8,  9,  10, 11, 12, 13,  // row 2
+    14, 15, 16, 17, 18,      // row 3
+    19, 20, 21               // thumb row
+};
+
+static const u32 gp_map_right[GP_COUNT] = {
+    7,  2,  3,  4,  5,  6,   // row 1
+    27, 28, 26, 8,  22, 21,  // row 2
+    19, 20, 18, 17, 16,      // row 3
+    15, 14, 13               // thumb row
+};
 
 static const u8 key_map_left[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
     // Layer 0
@@ -156,8 +167,13 @@ static const u8 key_map_right[LAYER_COUNT][GP_COUNT][KEYS_PER_COMBO] = {
     }
 };
 
-const u8* get_keycodes_left(u32 gpio) { return key_map_left[cur_layer][gpio - GP0]; }
-const u8* get_keycodes_right(u32 gpio) { return key_map_right[cur_layer][gpio - GP0]; }
+static u32 cur_layer = 0;
+
+const u32 get_gp_left(u32 i) { return gp_map_left[i]; }
+const u32 get_gp_right(u32 i) { return gp_map_right[i]; }
+
+const u8* get_keycodes_left(u32 i) { return key_map_left[cur_layer][i]; }
+const u8* get_keycodes_right(u32 i) { return key_map_right[cur_layer][i]; }
 
 void change_layer() { cur_layer = 1 - cur_layer; }  // Toggle for now
 
