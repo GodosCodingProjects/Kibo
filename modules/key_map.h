@@ -32,7 +32,6 @@
 
 #include <stdbool.h>
 
-#define GP0 2U
 #define GP_COUNT 20U
 
 #define KEYS_PER_COMBO 6U
