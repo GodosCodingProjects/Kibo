@@ -109,15 +109,24 @@ void init()
 {
     board_init();
     debug_led_init();
-    gps_in(GP0, GP_COUNT);
 
 #ifdef KIBO_MASTER
+    for (u32 i = 0; i < GP_COUNT; ++i)
+    {
+        gp_on(get_gp_left(i));
+    }
+
     // init device stack on configured roothub port
     tud_init(BOARD_TUD_RHPORT);
 
     if (board_init_after_tusb)
     {
         board_init_after_tusb();
+    }
+#else
+    for (u32 i = 0; i < GP_COUNT; ++i)
+    {
+        gp_on(get_gp_right(i));
     }
 #endif
 
@@ -130,15 +139,15 @@ void init()
     gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(uart0, UART_RX_PIN));
 }
 
-void send_hid_report_left(u32 gpio)
+void send_hid_report_left(u32 i)
 {
-    if (*get_keycodes_left(gpio) == HID_KEY_LAYER_TOGGLE)
+    if (*get_keycodes_left(i) == HID_KEY_LAYER_TOGGLE)
     {
         change_layer();
         return;
     }
 
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_left(gpio));
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_left(i));
     sleep_ms(key_send_cooldown);
     tud_task();
 
@@ -147,15 +156,15 @@ void send_hid_report_left(u32 gpio)
     tud_task();
 }
 
-void send_hid_report_right(u32 gpio)
+void send_hid_report_right(u32 i)
 {
-    if (*get_keycodes_right(gpio) == HID_KEY_LAYER_TOGGLE)
+    if (*get_keycodes_right(i) == HID_KEY_LAYER_TOGGLE)
     {
         change_layer();
         return;
     }
 
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_right(gpio));
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_right(i));
     sleep_ms(key_send_cooldown);
     tud_task();
 
@@ -164,9 +173,9 @@ void send_hid_report_right(u32 gpio)
     tud_task();
 }
 
-void send_uart(u32 gpio)
+void send_uart(u32 i)
 {
-    u8 output = (u8)gpio;
+    u8 output = (u8)i;
     uart_write_blocking(uart0, &output, 1);
 }
 
@@ -174,7 +183,11 @@ void parse_inputs()
 {
     for (u32 i = 0; i < GP_COUNT; ++i)
     {
-        update_input(i, gp_get(i + GP0));
+#ifdef KIBO_MASTER
+        update_input(i, gp_get(get_gp_left(i)));
+#else
+        update_input(i, gp_get(get_gp_right(i)));
+#endif
     }
 }
 
@@ -187,7 +200,7 @@ void handle_events()
             debug_led_on();
 
 #ifdef KIBO_MASTER
-            send_hid_report_left(i + GP0);
+            send_hid_report_left(i);
 #else
             send_uart(i);
 #endif
@@ -203,10 +216,10 @@ void handle_uart()
 {
     if (uart_is_readable(uart0))
     {
-        u8 input;
-        uart_read_blocking(uart0, &input, 1);
+        u8 i;
+        uart_read_blocking(uart0, &i, 1);
 
-        send_hid_report_right(input + GP0);
+        send_hid_report_right(i);
     }
 }
 
