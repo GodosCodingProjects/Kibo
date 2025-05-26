@@ -89,7 +89,6 @@ void handle_uart();
 int main(void)
 {
     init();
-    debug_led_off();
 
     while (1)
     {
