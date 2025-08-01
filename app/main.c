@@ -122,7 +122,8 @@ void init()
     }
 
     // init device stack on configured roothub port
-    is_master = tud_init(BOARD_TUD_RHPORT);
+    is_master = gp_get(PICO_VBUS_PIN);
+    tud_init(BOARD_TUD_RHPORT);
     if (is_master)
     {
         debug_led_on();
