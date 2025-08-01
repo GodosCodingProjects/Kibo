@@ -47,7 +47,7 @@ static const u32 gp_map_left[GP_COUNT] = {
 
 static const u32 gp_map_right[GP_COUNT] = {
     7,  2,  3,  4,  5,  6,   // row 1
-    27, 28, 26, 8,  22, 21,  // row 2
+    9,  10, 11, 8,  22, 21,  // row 2
     19, 20, 18, 17, 16,      // row 3
     15, 14, 13               // thumb row
 };
