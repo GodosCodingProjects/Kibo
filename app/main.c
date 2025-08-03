@@ -38,11 +38,13 @@
 #include "debug_led.h"
 #include "delta_time.h"
 #include "hardware/uart.h"
+#include "hid.h"
 #include "input_parse.h"
 #include "key_map.h"
 #include "pico/stdlib.h"
 #include "pin_helper.h"
 #include "tusb.h"
+#include "tusb_config.h"
 #include "types.h"
 #include "usb_descriptors.h"
 
@@ -55,7 +57,7 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-// #define KIBO_LEFT
+#define KIBO_LEFT
 #ifndef KIBO_LEFT
 #define KIBO_RIGHT
 #endif
@@ -69,9 +71,8 @@ const u32 frame_delay = 1;
 bool is_master = true;
 
 void init();
-void send_hid_report_left(u32 gpio);
-void send_hid_report_right(u32 gpio);
-void send_uart(u32 gpio);
+void send_hid_report(const u8* keycodes);
+void send_uart(const u8* keycodes);
 void parse_inputs();
 void handle_events();
 void handle_uart();
@@ -123,9 +124,9 @@ void init()
 
     // init device stack on configured roothub port
     is_master = gp_get(PICO_VBUS_PIN);
-    tud_init(BOARD_TUD_RHPORT);
     if (is_master)
     {
+        tud_init(BOARD_TUD_RHPORT);
         debug_led_on();
     }
     else
@@ -147,15 +148,19 @@ void init()
     gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(uart0, UART_RX_PIN));
 }
 
-void send_hid_report_left(u32 i)
+void send_hid_report(const u8* keycodes)
 {
-    if (*get_keycodes_left(i) == HID_KEY_LAYER_TOGGLE)
+    if (*keycodes == HID_KEY_NONE)
+    {
+        return;
+    }
+    if (*keycodes == HID_KEY_LAYER_TOGGLE)
     {
         change_layer();
         return;
     }
 
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_left(i));
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycodes);
     sleep_ms(key_send_cooldown);
     tud_task();
 
@@ -164,28 +169,7 @@ void send_hid_report_left(u32 i)
     tud_task();
 }
 
-void send_hid_report_right(u32 i)
-{
-    if (*get_keycodes_right(i) == HID_KEY_LAYER_TOGGLE)
-    {
-        change_layer();
-        return;
-    }
-
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_right(i));
-    sleep_ms(key_send_cooldown);
-    tud_task();
-
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-    sleep_ms(key_send_cooldown);
-    tud_task();
-}
-
-void send_uart(u32 i)
-{
-    u8 output = (u8)i;
-    uart_write_blocking(uart0, &output, 1);
-}
+void send_uart(const u8* keycodes) { uart_write_blocking(uart0, keycodes, 6); }
 
 void parse_inputs()
 {
@@ -203,21 +187,28 @@ void handle_events()
 {
     for (u32 i = 0; i < GP_COUNT; ++i)
     {
-        if (input_down(i))
+        key_events event = get_event(i);
+        if (event != event_RELEASED)
         {
+#ifdef KIBO_LEFT
+            const u8* keycodes = get_keycodes_left(i, event);
+#else
+            const u8* keycodes = get_keycodes_right(i, event);
+#endif
+            if (*keycodes == HID_KEY_NONE)
+            {
+                continue;
+            }
+
             debug_led_on();
 
             if (is_master)
             {
-#ifdef KIBO_LEFT
-                send_hid_report_left(i);
-#else
-                send_hid_report_right(i);
-#endif
+                send_hid_report(keycodes);
             }
             else
             {
-                send_uart(i);
+                send_uart(keycodes);
             }
         }
         else if (input_up(i))
@@ -231,14 +222,10 @@ void handle_uart()
 {
     if (uart_is_readable(uart0))
     {
-        u8 i;
-        uart_read_blocking(uart0, &i, 1);
+        u8* keycodes;
+        uart_read_blocking(uart0, keycodes, 6);
 
-#ifdef KIBO_LEFT
-        send_hid_report_right(i);
-#else
-        send_hid_report_left(i);
-#endif
+        send_hid_report(keycodes);
     }
 }
 
