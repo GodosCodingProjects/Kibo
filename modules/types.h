@@ -26,6 +26,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+// To fix an issue with intellisense of C/C++ extension on vscode, should be a keyword in C23
+#define true 1
+#define false 0
+
 typedef unsigned char u8;
 typedef signed char i8;
 
