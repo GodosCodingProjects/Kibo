@@ -23,16 +23,16 @@
  *
  */
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // References frequently consulted
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // https://github.com/hathach/tinyusb/blob/master/src/class/hid/hid.h
 // https://unicode.org/charts/
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Includes
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 #include "bsp/board_api.h"
 #include "class/hid/hid.h"
@@ -53,9 +53,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Constants and declarations
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // #define KIBO_LEFT <- Now defined (or not) using build parameters
 
@@ -74,14 +74,14 @@ void parse_inputs();
 void handle_events();
 void handle_uart();
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Main
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 /*
- *      Notes:
- *      You need to call tud_task() before every call to tud_hid_keyboard_report()
- *      You need to wait at least 4 ms before flushing the keys.
+ *  Notes:
+ *  You need to call tud_task() before every call to tud_hid_keyboard_report()
+ *  You need to wait at least 4 ms before flushing the keys.
  */
 
 int main(void)
@@ -255,33 +255,22 @@ void handle_uart()
     }
 }
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // TinyUSB HID callbacks
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // Callback: report sent successfully
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len) {}
 
 // Callback: received get_report control request
-uint16_t tud_hid_get_report_cb(
-    uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer,
-    uint16_t reqlen
-)
-{
-    return 0;
-}
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) { return 0; }
 
 // Callback: received set_report control request
-void tud_hid_set_report_cb(
-    uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer,
-    uint16_t bufsize
-)
-{
-}
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {}
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Device callbacks
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // Callback: device mounted successfully
 void tud_mount_cb(void) {}

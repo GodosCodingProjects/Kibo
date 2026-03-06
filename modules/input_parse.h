@@ -37,7 +37,7 @@ static u32 key_inputs[GP_COUNT] = {0};
 static const u32 ms_to_released = 0;
 static const u32 ms_to_up = 10;
 static const u32 ms_to_down = 20;
-static const u32 ms_to_pressed = 200;
+static const u32 ms_to_pressed = 300;
 
 static event last_key_events[GP_COUNT];
 
