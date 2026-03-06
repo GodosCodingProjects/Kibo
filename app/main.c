@@ -23,18 +23,19 @@
  *
  */
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // References frequently consulted
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // https://github.com/hathach/tinyusb/blob/master/src/class/hid/hid.h
 // https://unicode.org/charts/
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Includes
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 #include "bsp/board_api.h"
+#include "class/hid/hid.h"
 #include "debug_led.h"
 #include "delta_time.h"
 #include "hardware/uart.h"
@@ -43,6 +44,7 @@
 #include "pico/stdlib.h"
 #include "pin_helper.h"
 #include "tusb.h"
+#include "tusb_config.h"
 #include "types.h"
 #include "usb_descriptors.h"
 
@@ -51,14 +53,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Constants and declarations
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
-// #define KIBO_LEFT
-#ifndef KIBO_LEFT
-#define KIBO_RIGHT
-#endif
+// #define KIBO_LEFT <- Now defined (or not) using build parameters
 
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
@@ -69,21 +68,20 @@ const u32 frame_delay = 1;
 bool is_master = true;
 
 void init();
-void send_hid_report_left(u32 gpio);
-void send_hid_report_right(u32 gpio);
-void send_uart(u32 gpio);
+void send_hid_report(const u8* keycodes);
+void send_uart(const u8 key, const key_events event);
 void parse_inputs();
 void handle_events();
 void handle_uart();
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Main
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 /*
- *      Notes:
- *      You need to call tud_task() before every call to tud_hid_keyboard_report()
- *      You need to wait at least 4 ms before flushing the keys.
+ *  Notes:
+ *  You need to call tud_task() before every call to tud_hid_keyboard_report()
+ *  You need to wait at least 4 ms before flushing the keys.
  */
 
 int main(void)
@@ -97,7 +95,6 @@ int main(void)
 
         parse_inputs();
         handle_events();
-
         if (is_master)
         {
             handle_uart();
@@ -123,10 +120,11 @@ void init()
 
     // init device stack on configured roothub port
     is_master = gp_get(PICO_VBUS_PIN);
-    tud_init(BOARD_TUD_RHPORT);
     if (is_master)
     {
-        debug_led_on();
+        tud_init(BOARD_TUD_RHPORT);
+        // debug_led_on();
+        debug_led_off();
     }
     else
     {
@@ -143,19 +141,18 @@ void init()
 
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
-    gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(uart0, UART_TX_PIN));
-    gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(uart0, UART_RX_PIN));
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 }
 
-void send_hid_report_left(u32 i)
+void send_hid_report(const u8* keycodes)
 {
-    if (*get_keycodes_left(i) == HID_KEY_LAYER_TOGGLE)
+    if (keycodes[0] == HID_KEY_NONE)
     {
-        change_layer();
         return;
     }
 
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_left(i));
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycodes);
     sleep_ms(key_send_cooldown);
     tud_task();
 
@@ -164,27 +161,13 @@ void send_hid_report_left(u32 i)
     tud_task();
 }
 
-void send_hid_report_right(u32 i)
+void send_uart(const u8 key, const key_events event)
 {
-    if (*get_keycodes_right(i) == HID_KEY_LAYER_TOGGLE)
+    if (uart_is_writable(uart0))
     {
-        change_layer();
-        return;
+        u8 key_event[6] = {key, event};
+        uart_write_blocking(uart0, key_event, 6);
     }
-
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, get_keycodes_right(i));
-    sleep_ms(key_send_cooldown);
-    tud_task();
-
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-    sleep_ms(key_send_cooldown);
-    tud_task();
-}
-
-void send_uart(u32 i)
-{
-    u8 output = (u8)i;
-    uart_write_blocking(uart0, &output, 1);
 }
 
 void parse_inputs()
@@ -203,26 +186,36 @@ void handle_events()
 {
     for (u32 i = 0; i < GP_COUNT; ++i)
     {
-        if (input_down(i))
+        key_events event = get_event(i);
+        if (event != event_RELEASED)
         {
-            debug_led_on();
+#ifdef KIBO_LEFT
+            const u8* keycodes = get_keycodes_left(i, event);
+#else
+            const u8* keycodes = get_keycodes_right(i, event);
+#endif
+            if (keycodes[0] == HID_KEY_NONE)
+            {
+                continue;
+            }
 
             if (is_master)
             {
-#ifdef KIBO_LEFT
-                send_hid_report_left(i);
-#else
-                send_hid_report_right(i);
-#endif
+                // If it's a layer change, handle it internally
+                if (keycodes[0] == HID_KEY_GOTO_LAYER)
+                {
+                    change_layer(keycodes[1]);
+                    continue;
+                }
+
+                // Send actual keycodes to the computer via USB
+                send_hid_report(keycodes);
             }
             else
             {
-                send_uart(i);
+                // Send them to the master half
+                send_uart(i, event);
             }
-        }
-        else if (input_up(i))
-        {
-            debug_led_off();
         }
     }
 }
@@ -231,44 +224,53 @@ void handle_uart()
 {
     if (uart_is_readable(uart0))
     {
-        u8 i;
-        uart_read_blocking(uart0, &i, 1);
+        // Get the bytes from the uart
+        static u8 key_info[6];
+        uart_read_blocking(uart0, key_info, 6);
 
+        // // Ignore if nothing to read
+        // if (key_info[0] == HID_KEY_NONE)
+        // {
+        //     return;
+        // }
+
+        // Received keycodes come from the other keyboard half
 #ifdef KIBO_LEFT
-        send_hid_report_right(i);
+        const u8* keycodes = get_keycodes_right(key_info[0], key_info[1]);
 #else
-        send_hid_report_left(i);
+        const u8* keycodes = get_keycodes_left(key_info[0], key_info[1]);
 #endif
+
+        debug_led_on();
+
+        // If it's a layer change, handle it internally
+        if (keycodes[0] == HID_KEY_GOTO_LAYER)
+        {
+            change_layer(keycodes[1]);
+            return;
+        }
+
+        // For actual keycodes, send them to the computer via USB
+        send_hid_report(keycodes);
     }
 }
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // TinyUSB HID callbacks
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // Callback: report sent successfully
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const* report, uint16_t len) {}
 
 // Callback: received get_report control request
-uint16_t tud_hid_get_report_cb(
-    uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer,
-    uint16_t reqlen
-)
-{
-    return 0;
-}
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) { return 0; }
 
 // Callback: received set_report control request
-void tud_hid_set_report_cb(
-    uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer,
-    uint16_t bufsize
-)
-{
-}
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {}
 
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 // Device callbacks
-//-------------------------------------------------------------------------------------------------+
+//-----------------------------------------------------------------------------+
 
 // Callback: device mounted successfully
 void tud_mount_cb(void) {}

@@ -27,6 +27,7 @@
 #define INPUT_PARSE_H
 
 #include "delta_time.h"
+#include "events.h"
 #include "key_map.h"
 #include "types.h"
 
@@ -36,27 +37,13 @@ static u32 key_inputs[GP_COUNT] = {0};
 static const u32 ms_to_released = 0;
 static const u32 ms_to_up = 10;
 static const u32 ms_to_down = 20;
-static const u32 ms_to_pressed = 30;
+static const u32 ms_to_pressed = 300;
 
-enum key_events
-{
-    event_RELEASED,  // Release held
-    event_UP,        // Release detected
-    event_DOWN,      // Press detected
-    event_PRESSED,   // Press held
-    event_MAX,
-};
-struct event
-{
-    enum key_events event;
-    bool was_consumed;
-};
-static struct event last_key_events[GP_COUNT];
+static event last_key_events[GP_COUNT];
 
 static void update_event(u32 i)
 {
-    if (last_key_events[i].event != event_DOWN && last_key_events[i].event != event_PRESSED &&
-        key_inputs[i] == ms_to_down)
+    if (last_key_events[i].event != event_DOWN && last_key_events[i].event != event_PRESSED && key_inputs[i] == ms_to_down)
     {
         last_key_events[i].event = event_DOWN;
         last_key_events[i].was_consumed = false;
@@ -66,8 +53,7 @@ static void update_event(u32 i)
         last_key_events[i].event = event_PRESSED;
         last_key_events[i].was_consumed = false;
     }
-    else if (last_key_events[i].event != event_UP && last_key_events[i].event != event_RELEASED &&
-             key_inputs[i] == ms_to_up)
+    else if (last_key_events[i].event != event_UP && last_key_events[i].event != event_RELEASED && key_inputs[i] == ms_to_up)
     {
         last_key_events[i].event = event_UP;
         last_key_events[i].was_consumed = false;
@@ -134,5 +120,23 @@ bool input_up(u32 i)
     return false;
 }
 bool input_released(u32 i) { return (last_key_events[i].event == event_RELEASED); }
+
+key_events get_event(u32 i)
+{
+    switch (last_key_events[i].event)
+    {
+    case event_UP:
+    case event_DOWN:
+    case event_PRESSED:
+        if (last_key_events[i].was_consumed)
+        {
+            return event_RELEASED;
+        }
+        last_key_events[i].was_consumed = true;
+        return last_key_events[i].event;
+
+    default: return event_RELEASED;
+    }
+}
 
 #endif  // INPUT_PARSE_H

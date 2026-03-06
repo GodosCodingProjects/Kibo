@@ -2,5 +2,11 @@
 
 .vscode/
 build/
+build_left/
+build_right/
+imgs/
+KiCad/*
 
 *.bat
+*.xlsx
+*.zip

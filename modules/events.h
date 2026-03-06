@@ -23,23 +23,25 @@
  *
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef EVENTS_H
+#define EVENTS_H
 
-// To fix an issue with intellisense of C/C++ extension on vscode, should be a keyword in C23
-#define true 1
-#define false 0
+#include "types.h"
 
-typedef unsigned char u8;
-typedef signed char i8;
+#include <stdbool.h>
 
-typedef unsigned short u16;
-typedef signed short i16;
+typedef enum key_events_ENUM
+{
+    event_UP,        // Release detected
+    event_DOWN,      // Press detected
+    event_PRESSED,   // Press held
+    event_RELEASED,  // Release held
+    event_MAX,
+} key_events;
+typedef struct event_STRUCT
+{
+    key_events event;
+    bool was_consumed;
+} event;
 
-typedef unsigned int u32;
-typedef signed int i32;
-
-typedef unsigned long u64;
-typedef signed long i64;
-
-#endif  // TYPES_H
+#endif  // EVENTS_H
