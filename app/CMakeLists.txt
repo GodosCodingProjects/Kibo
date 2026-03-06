@@ -19,7 +19,7 @@ set(sdkVersion 2.1.1)
 set(toolchainVersion 14_2_Rel1)
 set(picotoolVersion 2.1.1)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
+if(EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
@@ -60,3 +60,9 @@ target_link_libraries(kibo PUBLIC pico_stdlib pico_unique_id tinyusb_device tiny
 pico_add_extra_outputs(kibo)
 
 # add url via pico_set_program_url
+
+# Indicate what keyboard half to use
+option(IS_LEFT "The left side of the keyboard. Defaults to right if unspecified." OFF)
+if(IS_LEFT)
+    add_compile_definitions(KIBO_LEFT)
+endif()
