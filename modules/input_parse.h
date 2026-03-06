@@ -37,14 +37,13 @@ static u32 key_inputs[GP_COUNT] = {0};
 static const u32 ms_to_released = 0;
 static const u32 ms_to_up = 10;
 static const u32 ms_to_down = 20;
-static const u32 ms_to_pressed = 30;
+static const u32 ms_to_pressed = 200;
 
 static event last_key_events[GP_COUNT];
 
 static void update_event(u32 i)
 {
-    if (last_key_events[i].event != event_DOWN && last_key_events[i].event != event_PRESSED &&
-        key_inputs[i] == ms_to_down)
+    if (last_key_events[i].event != event_DOWN && last_key_events[i].event != event_PRESSED && key_inputs[i] == ms_to_down)
     {
         last_key_events[i].event = event_DOWN;
         last_key_events[i].was_consumed = false;
@@ -54,8 +53,7 @@ static void update_event(u32 i)
         last_key_events[i].event = event_PRESSED;
         last_key_events[i].was_consumed = false;
     }
-    else if (last_key_events[i].event != event_UP && last_key_events[i].event != event_RELEASED &&
-             key_inputs[i] == ms_to_up)
+    else if (last_key_events[i].event != event_UP && last_key_events[i].event != event_RELEASED && key_inputs[i] == ms_to_up)
     {
         last_key_events[i].event = event_UP;
         last_key_events[i].was_consumed = false;
@@ -129,17 +127,15 @@ key_events get_event(u32 i)
     {
     case event_UP:
     case event_DOWN:
+    case event_PRESSED:
         if (last_key_events[i].was_consumed)
         {
             return event_RELEASED;
         }
-
         last_key_events[i].was_consumed = true;
         return last_key_events[i].event;
 
-    case event_PRESSED: return event_PRESSED;
-
-    default:            return event_RELEASED;
+    default: return event_RELEASED;
     }
 }
 

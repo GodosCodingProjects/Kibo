@@ -35,10 +35,10 @@
 //-------------------------------------------------------------------------------------------------+
 
 #include "bsp/board_api.h"
+#include "class/hid/hid.h"
 #include "debug_led.h"
 #include "delta_time.h"
 #include "hardware/uart.h"
-#include "hid.h"
 #include "input_parse.h"
 #include "key_map.h"
 #include "pico/stdlib.h"
@@ -57,10 +57,7 @@
 // Constants and declarations
 //-------------------------------------------------------------------------------------------------+
 
-#define KIBO_LEFT
-#ifndef KIBO_LEFT
-#define KIBO_RIGHT
-#endif
+// #define KIBO_LEFT <- Now defined (or not) using build parameters
 
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
@@ -72,7 +69,7 @@ bool is_master = true;
 
 void init();
 void send_hid_report(const u8* keycodes);
-void send_uart(const u8* keycodes);
+void send_uart(const u8 key, const key_events event);
 void parse_inputs();
 void handle_events();
 void handle_uart();
@@ -98,7 +95,6 @@ int main(void)
 
         parse_inputs();
         handle_events();
-
         if (is_master)
         {
             handle_uart();
@@ -127,7 +123,8 @@ void init()
     if (is_master)
     {
         tud_init(BOARD_TUD_RHPORT);
-        debug_led_on();
+        // debug_led_on();
+        debug_led_off();
     }
     else
     {
@@ -144,19 +141,14 @@ void init()
 
     // Set the TX and RX pins by using the function select on the GPIO
     // Set datasheet for more information on function select
-    gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(uart0, UART_TX_PIN));
-    gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(uart0, UART_RX_PIN));
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 }
 
 void send_hid_report(const u8* keycodes)
 {
-    if (*keycodes == HID_KEY_NONE)
+    if (keycodes[0] == HID_KEY_NONE)
     {
-        return;
-    }
-    if (*keycodes == HID_KEY_LAYER_TOGGLE)
-    {
-        change_layer();
         return;
     }
 
@@ -169,7 +161,14 @@ void send_hid_report(const u8* keycodes)
     tud_task();
 }
 
-void send_uart(const u8* keycodes) { uart_write_blocking(uart0, keycodes, 6); }
+void send_uart(const u8 key, const key_events event)
+{
+    if (uart_is_writable(uart0))
+    {
+        u8 key_event[6] = {key, event};
+        uart_write_blocking(uart0, key_event, 6);
+    }
+}
 
 void parse_inputs()
 {
@@ -195,25 +194,28 @@ void handle_events()
 #else
             const u8* keycodes = get_keycodes_right(i, event);
 #endif
-            if (*keycodes == HID_KEY_NONE)
+            if (keycodes[0] == HID_KEY_NONE)
             {
                 continue;
             }
 
-            debug_led_on();
-
             if (is_master)
             {
+                // If it's a layer change, handle it internally
+                if (keycodes[0] == HID_KEY_GOTO_LAYER)
+                {
+                    change_layer(keycodes[1]);
+                    continue;
+                }
+
+                // Send actual keycodes to the computer via USB
                 send_hid_report(keycodes);
             }
             else
             {
-                send_uart(keycodes);
+                // Send them to the master half
+                send_uart(i, event);
             }
-        }
-        else if (input_up(i))
-        {
-            debug_led_off();
         }
     }
 }
@@ -222,9 +224,33 @@ void handle_uart()
 {
     if (uart_is_readable(uart0))
     {
-        u8* keycodes;
-        uart_read_blocking(uart0, keycodes, 6);
+        // Get the bytes from the uart
+        static u8 key_info[6];
+        uart_read_blocking(uart0, key_info, 6);
 
+        // // Ignore if nothing to read
+        // if (key_info[0] == HID_KEY_NONE)
+        // {
+        //     return;
+        // }
+
+        // Received keycodes come from the other keyboard half
+#ifdef KIBO_LEFT
+        const u8* keycodes = get_keycodes_right(key_info[0], key_info[1]);
+#else
+        const u8* keycodes = get_keycodes_left(key_info[0], key_info[1]);
+#endif
+
+        debug_led_on();
+
+        // If it's a layer change, handle it internally
+        if (keycodes[0] == HID_KEY_GOTO_LAYER)
+        {
+            change_layer(keycodes[1]);
+            return;
+        }
+
+        // For actual keycodes, send them to the computer via USB
         send_hid_report(keycodes);
     }
 }
